@@ -1,7 +1,7 @@
 {
   "name": "touski",
   "version": "1.0.0",
-  "description": "touski — tout ce qui reste. AI-powered weekly meal planner that thinks like a home chef.",
+  "description": "touski \u2014 tout ce qui reste. AI-powered weekly meal planner that thinks like a home chef.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,6 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.63.3",
     "@vitejs/plugin-react": "^4.3.1",
     "vite": "^5.4.0"
   }
