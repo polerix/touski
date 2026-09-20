@@ -32,11 +32,15 @@ jobs:
 
       - name: Build Project
         run: npm run build
-        env:
-          VITE_ANTHROPIC_API_KEY: ${{ secrets.VITE_ANTHROPIC_API_KEY }}
 
       - name: Verify Build
         run: ls -la dist
+
+      - name: Fail if a credential reached the static bundle
+        run: |
+          # Anything under dist/ is public. Never publish an API key or a VITE_ secret reference.
+          ! grep -rn "sk-ant" dist/
+          ! grep -rn "VITE_ANTHROPIC" dist/
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
