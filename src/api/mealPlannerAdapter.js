@@ -1,13 +1,30 @@
 /**
  * Meal Planner Adapter Interface
  *
- * Provides transport abstraction for meal plan generation.
- * Prevents embedding sensitive API keys in client-side production bundles.
- * See docs/ADR-001-api-architecture.md for deployment architecture options.
+ * Provides transport abstraction for meal plan generation. Two paths:
+ *   1. Backend proxy (VITE_API_ENDPOINT): the proxy holds the credentials.
+ *   2. Bring-your-own-key: the visitor supplies their own Anthropic key, which
+ *      stays in their browser (see keyStore.js) and is sent only to api.anthropic.com.
+ * No credential is ever read from the build environment.
+ * See docs/ADR-001-api-architecture.md.
  */
 
+import { getApiKey } from './keyStore.js'
+
+/** Thrown when the visitor has to (re)enter a key. `code` is NO_KEY or INVALID_KEY. */
+export class ApiKeyError extends Error {
+  constructor(code, message) {
+    super(message)
+    this.name = 'ApiKeyError'
+    this.code = code
+  }
+}
+
+/** True when a backend proxy is configured and no visitor key is needed. */
+export const usesProxy = Boolean(import.meta.env?.VITE_API_ENDPOINT)
+
 export async function generateMealPlan({ pantryItems, household, cookingStyle, weekStart }) {
-  const apiEndpoint = import.meta.env.VITE_API_ENDPOINT
+  const apiEndpoint = import.meta.env?.VITE_API_ENDPOINT
 
   // Option 1: Backend proxy endpoint configured (preferred for production/self-hosted)
   if (apiEndpoint) {
@@ -33,11 +50,11 @@ export async function generateMealPlan({ pantryItems, household, cookingStyle, w
     return data.plan || data
   }
 
-  // Option 2: Ephemeral developer key in sessionStorage (for local developer sandbox only)
-  const devSessionKey = typeof window !== 'undefined' ? window.sessionStorage.getItem('touski_dev_api_key') : null
-  if (devSessionKey) {
+  // Option 2: Bring-your-own-key. The visitor's key stays in their browser.
+  const apiKey = getApiKey()
+  if (apiKey) {
     return generateWithDirectKey({
-      apiKey: devSessionKey,
+      apiKey,
       pantryItems,
       household,
       cookingStyle,
@@ -45,14 +62,13 @@ export async function generateMealPlan({ pantryItems, household, cookingStyle, w
     })
   }
 
-  // Fallback: Inform user that backend proxy is required
-  throw new Error(
-    'Backend API endpoint not configured. Touski is a static client application that requires a server-side proxy to protect API credentials. See docs/ADR-001-api-architecture.md for configuration instructions.'
-  )
+  // Fallback: nothing configured, so ask the visitor for a key.
+  throw new ApiKeyError('NO_KEY', 'Add your Anthropic API key to plan a week.')
 }
 
 /**
- * Direct Anthropic call used exclusively with ephemeral session keys for local testing.
+ * Direct browser call to Anthropic using the visitor's own key.
+ * The key goes only in the x-api-key header of the request to api.anthropic.com.
  */
 async function generateWithDirectKey({ apiKey, pantryItems, household, cookingStyle, weekStart }) {
   const styleDesc = {
@@ -108,7 +124,7 @@ Respond ONLY with a valid JSON object, no markdown, no explanation:
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-5',
       max_tokens: 2200,
       system: systemPrompt,
       messages: [
@@ -120,6 +136,9 @@ Respond ONLY with a valid JSON object, no markdown, no explanation:
     }),
   })
 
+  if (resp.status === 401 || resp.status === 403) {
+    throw new ApiKeyError('INVALID_KEY', 'Anthropic rejected this key. Check it, or paste a different one.')
+  }
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}))
     throw new Error(err.error?.message || `API error ${resp.status}`)
