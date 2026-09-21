@@ -541,3 +541,55 @@
   }
   .logo { font-size: 38px; }
 }
+
+/* ── Anthropic key entry (bring-your-own-key) ── */
+.key-panel { border-bottom: 2px solid #C4A860; }
+.key-help {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #5A3A18;
+  margin: 0 0 8px;
+  max-width: 62ch;
+}
+.key-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.key-input {
+  flex: 1 1 260px;
+  width: auto;
+  min-height: 0;
+  resize: none;
+  font-size: 12px;
+}
+.key-remember {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #4A2A10;
+  cursor: pointer;
+}
+.key-hint { color: #9A7040; font-size: 11px; }
+.key-err {
+  margin-top: 8px;
+  padding: 7px 11px;
+  background: rgba(160,30,6,0.1);
+  border: 1px solid rgba(160,30,6,0.3);
+  border-radius: 3px;
+  font-size: 12px;
+  color: #8A1800;
+}
+.key-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #C4A860;
+}
+.key-status { margin-bottom: 0; }

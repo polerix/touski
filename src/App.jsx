@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { useMealPlan } from './hooks/useMealPlan'
+import { useApiKey } from './hooks/useApiKey'
+import { usesProxy } from './api/mealPlannerAdapter'
 import LiquidGlassFilters from './components/LiquidGlassFilters'
 import ControlPanel from './components/ControlPanel'
+import KeyPanel from './components/KeyPanel'
 import PantryInput from './components/PantryInput'
 import Carousel from './components/Carousel'
 import ShoppingList from './components/ShoppingList'
@@ -22,9 +25,14 @@ export default function App() {
     cookingStyle: 'casual',
   })
 
-  const { plan, loading, error, generate } = useMealPlan()
+  const { plan, loading, error, keyNotice, setKeyNotice, generate } = useMealPlan()
+  const keyMode = useApiKey()
 
   function handleGenerate() {
+    if (!usesProxy && keyMode === 'none') {
+      setKeyNotice('Add your Anthropic API key first, then plan your week.')
+      return
+    }
     const items = pantry.split('\n').filter((l) => l.trim())
     if (!items.length) {
       alert('Please add some pantry items first')
@@ -54,6 +62,9 @@ export default function App() {
             <div className="logo-desc">AI Home Chef Edition</div>
           </div>
         </div>
+
+        {/* Anthropic key: first-run prompt, then a status row with Forget */}
+        <KeyPanel mode={keyMode} notice={keyNotice} onSaved={() => setKeyNotice(null)} />
 
         {/* Control Panel — the four liquid glass buttons */}
         <ControlPanel
