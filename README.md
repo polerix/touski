@@ -28,7 +28,7 @@ Built with the aesthetics of a 1970s Hamilton Beach food processor: beige body, 
 ### 1. Clone
 
 ```bash
-git clone https://github.com/yourusername/touski.git
+git clone https://github.com/polerix/touski.git
 cd touski
 ```
 
@@ -38,31 +38,32 @@ cd touski
 npm install
 ```
 
-### 3. API Key
-
-Copy `.env.example` to `.env` and add your Anthropic API key:
-
-```bash
-cp .env.example .env
-```
-
-Then edit `.env`:
-
-```
-VITE_ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
-```
-
-Get your key at [console.anthropic.com](https://console.anthropic.com).
-
-> **Note:** This app calls the Anthropic API directly from the browser. This is fine for local use but do not deploy publicly without a backend proxy — your API key would be exposed.
-
-### 4. Run
+### 3. Run
 
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173)
+
+---
+
+## Your API key
+
+Touski runs entirely in your browser and has no server. To plan a week it calls Claude with **your own Anthropic API key**, which you paste into the key box the first time you open the app. Get a key at [console.anthropic.com](https://console.anthropic.com).
+
+- **The key stays in your browser.** It is sent only to `api.anthropic.com`, in the request that plans your week. It is never sent to GitHub, never stored in this repository, and never built into the site's code.
+- **By default it is forgotten.** The key is held for the current tab only and disappears when you close the tab.
+- **Remember on this device** (unchecked by default) keeps the key in this browser's local storage so you do not have to paste it again. Only use it on a device you trust.
+- **Forget key** clears it from both places at any time.
+- Keys are checked for shape when you enter them (they start with `sk-ant-`). Anthropic checks the key itself when you plan a week; if it is rejected, Touski drops it and asks again.
+- Anyone with access to your browser profile can read a remembered key. Set a spend limit on the key in the Anthropic console.
+
+There is no `.env` file and nothing to configure at build time. Do not put a key in `VITE_*` variables: Vite compiles them into the public JavaScript.
+
+### Optional: backend proxy
+
+If you would rather not paste a key into a browser, set `VITE_API_ENDPOINT` at build time to a server you run (a Cloudflare Worker, for example) that holds the key and accepts `{ pantryItems, household, cookingStyle, weekStart }`. When it is set, Touski hides the key box and sends requests there instead. See [ADR-001](docs/ADR-001-api-architecture.md).
 
 ---
 
@@ -93,14 +94,20 @@ Edit `src/samplePantry.js` to replace the built-in sample with your own permanen
 npm run build
 ```
 
-Output is in `/dist`. Remember: add a backend proxy before any public deployment to protect your API key.
+Output is in `/dist`. It contains no credentials: each visitor supplies their own key in the browser (see [Your API key](#your-api-key)). CI fails the deploy if a key-shaped string reaches `dist/`.
+
+```bash
+npm test
+```
+
+Runs the key-handling and API-call tests (no network, fake keys only).
 
 ---
 
 ## Stack
 
 - [React 18](https://react.dev) + [Vite](https://vite.dev)
-- [Anthropic Claude API](https://docs.anthropic.com) — `claude-sonnet-4-20250514`
+- [Anthropic Claude API](https://docs.anthropic.com) — `claude-sonnet-5`
 - Pure CSS liquid glass (SVG `feDisplacementMap` + `backdrop-filter`)
 - Playfair Display · Barlow Condensed · JetBrains Mono
 

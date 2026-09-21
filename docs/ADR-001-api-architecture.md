@@ -1,7 +1,7 @@
 # ADR-001: Separation of LLM Credentials from Static Client
 
 ## Status
-Accepted
+Accepted. Amended 2026-09-21: bring-your-own-key is now the default path (see Decision 3 and 4).
 
 ## Context
 Touski was initially implemented with direct browser requests to the Anthropic Messages API (`https://api.anthropic.com/v1/messages`) using `anthropic-dangerous-direct-browser-access: true` and an API key injected at build time via `import.meta.env.VITE_ANTHROPIC_API_KEY`.
@@ -13,8 +13,9 @@ GitHub Pages is a static-only web host that does not provide serverless function
 ## Decision
 1. **Remove Build-Time API Key Embedding**: Completely remove `VITE_ANTHROPIC_API_KEY` from client code and build configurations. Ensure no credentials can be bundled into static assets.
 2. **Introduce Server-Side Adapter Interface**: Create `src/api/mealPlannerAdapter.js` to decouple the meal planning UI from the underlying transport. The client delegates meal plan generation to a configured backend endpoint (`VITE_API_ENDPOINT` or `/api/mealplan`).
-3. **Graceful Degraded State**: When no backend endpoint is configured (such as on default static GitHub Pages deployments), the UI displays a helpful configuration notice instead of failing cryptographically or leaking credentials.
-4. **Local Development Key Storage**: For offline development or local testing without a backend, developers can supply an ephemeral session key (stored only in `sessionStorage` or provided via dialog), which is never committed to Git or baked into production bundles.
+3. **Bring-your-own-key is the default.** With no backend endpoint configured (the default on GitHub Pages), the UI prompts the visitor for their own Anthropic API key instead of failing. The key is validated for shape, then kept only in the browser and sent only to `api.anthropic.com`.
+4. **Key storage: forget by default, opt in to remember.** The key goes in `sessionStorage` (slot `touski_dev_api_key`) and is gone when the tab closes. A "Remember on this device" checkbox, off by default, stores it in `localStorage` instead. "Forget key" clears both. A key that Anthropic rejects with 401/403 is dropped automatically. The key is never logged, never placed in a URL, and never present in the build or in workflow environment. CI fails the deploy if a key-shaped literal reaches `dist/`.
+5. **The proxy stays supported.** When `VITE_API_ENDPOINT` is set, requests go to that endpoint, the key box is hidden, and no visitor key is used. Moving to a Worker later needs a build variable, not a rewrite.
 
 ## Architectural Options Evaluated
 
@@ -28,10 +29,10 @@ GitHub Pages is a static-only web host that does not provide serverless function
 - **Pros**: Fully self-contained, no third-party cloud hosting needed.
 - **Cons**: Requires running two processes during local use.
 
-### Option 3: User-Supplied Ephemeral Key (Direct Local Dev)
-- **Implementation**: Allow the developer to input an API key into a local settings modal saved only in browser `sessionStorage`.
-- **Pros**: Works directly in browser without backend setup.
-- **Cons**: Key is exposed in the browser's own memory (acceptable only for personal local development).
+### Option 3: Visitor-Supplied Key (Chosen default)
+- **Implementation**: A key panel takes the visitor's own key. It is held in `sessionStorage` by default, or `localStorage` if the visitor opts in to remember it.
+- **Pros**: Works on static hosting with no backend, and the site owner holds no secret. Each visitor pays for and controls their own usage.
+- **Cons**: The key is readable by scripts running on the origin and by anyone with access to the browser profile, so a remembered key is only appropriate on a trusted device. Requires the `anthropic-dangerous-direct-browser-access` header. Visitors need their own Anthropic account.
 
 ## Consequences
 - **Security**: Production builds contain zero secret credentials.
