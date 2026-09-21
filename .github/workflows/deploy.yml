@@ -48,7 +48,7 @@ jobs:
           if grep -rn "VITE_ANTHROPIC" dist/; then echo "::error::VITE_ANTHROPIC reference in dist/"; exit 1; fi
 
       - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./dist
 
